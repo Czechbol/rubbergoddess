@@ -14,6 +14,8 @@ from repository.database import database, session
 from repository.database.verification import Valid_person, Permit
 from repository.database.year_increment import User_backup
 
+from PIL import Image, ImageFont, ImageDraw
+
 user_r = user_repo.UserRepository()
 
 config = config.Config
@@ -426,6 +428,41 @@ class FitWide(commands.Cog):
             result.status = 0
             session.commit()
             await ctx.send("Done")
+
+    @commands.cooldown(rate=2, per=20.0, type=commands.BucketType.user)
+    @commands.command()
+    async def gen_image(self, ctx, *args):
+        if ctx.author.id != config.admin_id:
+            await ctx.send(
+                    messages.insufficient_rights
+                    .format(user=utils.generate_mention(ctx.author.id)))
+            return
+
+        filepath = "assets/tmp.png"
+        text = ' '.join(args)
+
+        W, H = (799, 186)
+
+        bg = (0, 0, 0, 0)
+        fg = (229, 0, 43)
+
+        im = Image.new('RGBA', (W, H), bg)
+        fnt = ImageFont.truetype('assets/Vafle VUT Regular.ttf', 96)
+
+        draw = ImageDraw.Draw(im)
+
+        draw.line((20, 20, im.size[0] - 20, 20), fill=fg, width=5)
+        draw.line((20, im.size[1] - 20, im.size[0] - 20,
+                   im.size[1] - 20), fill=fg, width=5)
+
+        w, h = draw.textsize(text.upper(), font=fnt)
+        draw.text(((W - w) / 2, (H - h) / 2 - 10),
+                  text.upper(), font=fnt, fill=fg)
+
+        im.save(filepath)
+
+        file = discord.File(filepath, filename="generated_image.png")
+        await ctx.send(file=file)
 
     @get_users_login.error
     @reset_login.error
